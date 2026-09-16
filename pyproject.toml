@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sourceweave"
+version = "0.1.0"
+description = "Generation-focused documentation system: generate, evaluate, publish."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "Scott Certain" }]
+
+# Deliberately no anthropic SDK dependency. Model access goes through the
+# Claude Code CLI on a subscription -- see
+# docs/decisions/0002-model-access-via-claude-subscription.md
+dependencies = [
+    "python-dotenv>=1.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+
+[project.scripts]
+sourceweave = "sourceweave_pipeline.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "pipeline/sourceweave_pipeline",
+    "eval/sourceweave_eval",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["pipeline/tests", "eval/tests"]
