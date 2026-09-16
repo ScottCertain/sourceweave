@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(targets/**)",
+      "Read(pipeline/prompts/**)",
+      "Read(style-guide/**)",
+      "Glob",
+      "Grep"
+    ],
+    "deny": [
+      "Write(targets/*/upstream/**)",
+      "Write(targets/*/official-docs/**)",
+      "Edit(targets/*/upstream/**)",
+      "Edit(targets/*/official-docs/**)",
+      "Bash",
+      "WebFetch",
+      "WebSearch"
+    ]
+  }
+}
