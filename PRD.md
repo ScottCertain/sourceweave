@@ -219,6 +219,10 @@ The last four measure the AI-mediated channel (§15). Citation rate and accuracy
 16. Which engines beyond Claude-with-web-search are worth spot-checking by hand, and how often? Automating them is blocked by metered APIs or the absence of any API at all (ADR 0007).
 17. How are holdout pages chosen, and does the holdout rotate? A fixed holdout risks those pages being systematically under-reached for the life of the project; a rotating one weakens comparability.
 
+**Q15–Q17 are deliberately deferred** (2026-09-17). They are measurement-design questions that deserve thought rather than a fast answer, and they block nothing before M2 — no part of M0 or M1 depends on them.
+
+They do carry one cost, which is accepted: §15.7 argues the citation probe should start early so a baseline exists before optimization work begins, and these questions gate that probe. The resolution is to start recording against a provisional question set rather than wait for the final one. [ADR 0007](docs/decisions/0007-citation-tracking.md) already requires the question set to be versioned and the trend line to break deliberately when it changes, so a v1 set that is later superseded is an anticipated outcome, not a mistake.
+
 ## 14. Licensing and disclosure
 
 | Item | Decision | Status |
