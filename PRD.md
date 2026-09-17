@@ -181,11 +181,18 @@ The last four measure the AI-mediated channel (§15). Citation rate and accuracy
 |---|---|---|
 | **M0: Foundation** | Repo scaffold, licenses, README with disclaimers, `.gitignore`, Docusaurus site deploying to Netlify with `noIndex` | Empty site live on Netlify from CI |
 | **M1: Upstream wiring** | Submodules pinned, release-watch workflow | New upstream release produces a bump PR automatically |
-| **M2: First generation slice** | Generate one bounded section end to end (candidate: API reference from the OpenAPI spec) | Section published with provenance recorded |
+| **M2: First generation slice** | Generate one bounded section end to end (API reference from the OpenAPI spec, per ADR 0003). Includes the corpus loader and review gate (FR-25–27) and starts the citation probe | Section published with provenance recorded; no unreviewed page reachable; probe recording a baseline |
 | **M3: Style guide v1** | Edit the M2 output; write the first style guide from those edits | Style guide committed; initial rules machine-checkable |
 | **M4: Evaluation v1** | Style and accuracy scoring; CI checks; baseline scores | Scores recorded for M2 output |
-| **M5: Comparison** | Gap and drift reports against the official docs | First comparison report published |
-| **M6: Expansion** | Additional content types and sections; stable and preview streams | Metric thresholds set and tracked |
+| **M5: AI-mediated delivery** | Retrieval surface, MCP server, agent-task evaluation, published citation page (§15) | MCP server serving the corpus with verification metadata; retrieval surface measured against the M2 baseline |
+| **M6: Comparison** | Gap and drift reports against the official docs | First comparison report published |
+| **M7: Expansion** | Additional content types and sections; stable and preview streams; workspace bundle | Metric thresholds set and tracked |
+
+**Ordering constraints.** M2 and M4 are fixed by merged records — [ADR 0003](docs/decisions/0003-upstream-integration.md) names M2 as the first generation slice, [ADR 0002](docs/decisions/0002-model-access-via-claude-subscription.md) treats evaluation calibration as required work in M4. Those numbers cannot move without superseding an immutable record, so new phases insert after M4.
+
+M5 sits where it does for a second reason: the MCP server's distinguishing feature is exposing verification metadata (FR-31), which does not exist until M4 produces it. Built earlier it would be a document index with nothing to set it apart.
+
+**Milestones are scope-boxed, not time-boxed.** Exit criteria define done; dates are recorded after the fact rather than committed to in advance. Under a fixed capacity ceiling ([ADR 0002](docs/decisions/0002-model-access-via-claude-subscription.md)) throughput is not predictable enough to promise, and the recorded actuals feed the release-lag metric in §10.
 
 ## 12. Risks
 
@@ -219,9 +226,15 @@ The last four measure the AI-mediated channel (§15). Citation rate and accuracy
 16. Which engines beyond Claude-with-web-search are worth spot-checking by hand, and how often? Automating them is blocked by metered APIs or the absence of any API at all (ADR 0007).
 17. How are holdout pages chosen, and does the holdout rotate? A fixed holdout risks those pages being systematically under-reached for the life of the project; a rotating one weakens comparability.
 
-**Q15–Q17 are deliberately deferred** (2026-09-17). They are measurement-design questions that deserve thought rather than a fast answer, and they block nothing before M2 — no part of M0 or M1 depends on them.
+**Q15–Q17 are deliberately deferred** (2026-09-17). They are measurement-design questions that deserve thought rather than a fast answer. Nothing in M0 or M1 depends on them, and they bite at different points:
 
-They do carry one cost, which is accepted: §15.7 argues the citation probe should start early so a baseline exists before optimization work begins, and these questions gate that probe. The resolution is to start recording against a provisional question set rather than wait for the final one. [ADR 0007](docs/decisions/0007-citation-tracking.md) already requires the question set to be versioned and the trend line to break deliberately when it changes, so a v1 set that is later superseded is an anticipated outcome, not a mistake.
+| Question | First needed | Provisional answer that unblocks it |
+|---|---|---|
+| Q15 — set size and cadence | M2 | A small set at weekly cadence; the number is a capacity bound, so err low |
+| Q16 — which engines to spot-check | M5, when the page publishes | Automate Claude-with-web-search only; add manual checks later |
+| Q17 — holdout selection and rotation | M5, when experiments begin | None needed until FR-38 runs |
+
+The citation probe starts at M2 against a **provisional** question set rather than waiting for a settled one. [ADR 0007](docs/decisions/0007-citation-tracking.md) already requires the set to be versioned and the trend line to break deliberately when it changes, so a v1 set that is later superseded is the anticipated path, not a mistake. Waiting would cost the baseline, which is the one thing that cannot be reconstructed later.
 
 ## 14. Licensing and disclosure
 
@@ -321,12 +334,17 @@ This section adds fourteen requirements to a PRD that already has twenty-four, a
 
 | Tier | Work | Attaches to |
 |---|---|---|
-| **Foundational** | FR-25, FR-26, FR-27 — channel boundary, review gate, determinism check | Before any second channel exists |
-| **Cheap and high-value** | FR-28, FR-29, FR-30 — retrieval surface, deterministic, no capacity cost | M2, alongside the first generated section |
-| **The differentiator** | FR-31, FR-32, FR-34 — MCP server and agent-task evaluation | M4, once evaluation output exists to expose |
-| **The measurement loop** | FR-35, FR-36, FR-37, FR-38 — crawler policy, citation probe, published page, experiments | M4, once there is a site to cite and a baseline to move |
-| **Opportunistic** | FR-33 — workspace bundle | M6, or whenever convenient |
+| **Foundational** | FR-25, FR-26, FR-27 — channel boundary, review gate, determinism check | **M2** — the gate must exist before anything is published |
+| **Baseline** | FR-36 — citation probe, provisional question set | **M2** — starts the moment content is reachable |
+| **Cheap and high-value** | FR-28, FR-29, FR-30 — retrieval surface, deterministic, no capacity cost | **M5** |
+| **The differentiator** | FR-31, FR-32, FR-34 — MCP server and agent-task evaluation | **M5** — needs M4's evaluation output to expose |
+| **The loop closes** | FR-35, FR-37, FR-38 — crawler policy, published page, recorded experiments | **M5** |
+| **Opportunistic** | FR-33 — workspace bundle | **M7**, or whenever convenient |
 
-The MCP server depends on evaluation output, so it cannot meaningfully precede M4. Building it earlier would produce a document index with nothing to distinguish it.
+Two of these are placed against intuition, for the same underlying reason.
 
-The citation probe wants to start *early* for the opposite reason: its value is the trend, and a trend needs a baseline recorded before optimization work begins. Starting it at M4 alongside the retrieval-fitness work would leave nothing to compare against. If one thing here moves earlier than its tier suggests, it should be FR-36 — running against whatever is published at M2, even if the numbers are zero for months. Zero is a baseline.
+**FR-25–27 move earlier than "foundational" suggests.** The review gate is not architecture to add when a second channel appears — it is what stops an unreviewed page from being published at all. M2 publishes. So the gate ships with M2, or M2 violates the prohibition on publishing unreviewed content.
+
+**FR-36 moves much earlier than the rest of its section.** Its value is the trend, and a trend needs a baseline recorded *before* the optimization work exists. Starting the probe at M5 alongside the retrieval surface would leave nothing to compare against.
+
+Splitting them this way produces something better than either placement alone: with a baseline running from M2, the M5 retrieval surface becomes the **first recorded experiment** under FR-38 — a real before-and-after against months of prior measurement, rather than a change assumed to help. The probe returning zero for months is not a failure of the metric. Zero is the baseline.
