@@ -52,6 +52,40 @@ cd site && npm run build
 - **Regeneration is incremental.** Regenerate a page only when its recorded source digests have changed. The capacity ceiling makes this a requirement, not an optimization — a full-corpus run exhausts the window before it finishes.
 - **A run that hits the ceiling checkpoints and stops.** Catch `RateLimited`, save progress, exit cleanly. Never retry into a wall.
 
+## Commit and PR workflow
+
+Standard sequence for any change:
+
+1. Branch off `main` — never commit to `main` directly.
+2. Commit with a message that explains *why*, not just what. End with the Claude co-author trailer.
+3. Push, open a PR, and wait for CI to pass.
+4. **Merge with a merge commit** (`gh pr merge N --merge --delete-branch`), not squash or rebase. The merge commit preserves the link to the PR, and the PR writeup is part of what this project is meant to show (PRD §2).
+5. **Delete the branch on merge.** Always — this is standard, not a per-PR decision.
+
+Branch deletion is automated in two places so it does not depend on remembering: the repository has `delete_branch_on_merge` enabled, and `fetch.prune` is set so stale remote-tracking refs clear themselves. The `--delete-branch` flag is still the explicit habit.
+
+## Planning and issue tracking
+
+**A milestone is a sprint.** PRD §11 milestones map one-to-one onto GitHub Milestones — no separate cadence, no second planning structure to keep in sync. The PRD's exit criteria are the sprint goal; do not restate them elsewhere.
+
+**Scope-boxed, not time-boxed.** A milestone closes when its exit criteria are met, not on a date. Under a fixed capacity ceiling throughput is not predictable enough to promise. Record actual start and end dates after the fact — that is where the release-lag metric comes from.
+
+**The board is the plan. There are no implementation-plan documents.** Each milestone gets one tracking issue that decomposes it into child issues. That tracking issue *is* the plan: it lives where the work lives, so it cannot drift from the board the way a Markdown plan would. A design question that surfaces mid-build becomes an ADR, not a plan document.
+
+**WIP limit: three issues in progress.** The failure mode for solo work is six things at 70%, not slow throughput. This matters more than any cadence.
+
+**Keep the traceability chain intact.** It is one line per artifact and it is a large part of what this project demonstrates:
+
+| Artifact | Line |
+|---|---|
+| Issue | `Implements: FR-NN` |
+| PR | `Closes #N` |
+| ADR | `Closes: PRD §13 Qn` |
+
+**FR status is decision state, not build state.** `Proposed → Decided` records that a choice was settled. Whether the code exists lives on the board and in PRD §11. Mixing them turns the PRD into a stale tracker.
+
+**Never renumber a milestone without grepping `docs/decisions/` first.** Merged ADRs cite milestone numbers — ADR 0002 pins evaluation calibration to M4, ADR 0003 pins the first generation slice to M2. Records are immutable, so renumbering past a cited milestone silently falsifies a record that cannot be edited. Insert new phases after the last cited number instead. This has already nearly happened once.
+
 ## Decision records
 
 Decisions go in `docs/decisions/` as numbered records, not in commit messages or scattered comments. Records are immutable once merged; to change one, add a record that supersedes it.
