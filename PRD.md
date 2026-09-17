@@ -168,9 +168,12 @@ Thresholds are TBD and should be set after the first evaluation runs establish a
 | Indexing readiness | All metrics above at threshold, triggering removal of `noIndex` | TBD |
 | Retrieval fitness | Share of pages passing mechanical retrieval checks (§15) | TBD |
 | Agent task success | Share of integration tasks an agent completes correctly using only the corpus | TBD |
-| Citation rate | Share of a fixed question set where an assistant cites SourceWeave | TBD (observational) |
+| Citation rate | Share of a fixed question set where an assistant cites SourceWeave | Tracked, not gated |
+| Accuracy when cited | Share of assistant answers that are correct against pinned source | TBD |
 
-The last three measure the AI-mediated channel (§15). **Citation rate is observational, not a target.** It depends on third-party crawling and ranking behavior that this project does not control, so it is tracked to learn from, never optimized toward a threshold, and never used as a release gate.
+The last four measure the AI-mediated channel (§15). Citation rate and accuracy-when-cited are measured on a schedule and published on the site ([ADR 0007](docs/decisions/0007-citation-tracking.md)).
+
+**Citation rate is tracked, never gated.** It depends on third-party crawling and ranking behavior this project does not control, so it informs optimization experiments and is never a release threshold. Accuracy-when-cited is the more important of the two: an assistant answering correctly without citing us still means the documentation worked, while an assistant citing us and answering wrongly is a defect no other metric in this table can see.
 
 ## 11. Milestones
 
@@ -212,6 +215,9 @@ The last three measure the AI-mediated channel (§15). **Citation rate is observ
 12. What does `channels/workspace/` emit — a flat Markdown bundle, a zip, or an AnythingLLM-native format? Requires confirming what AnythingLLM's workspace ingestion actually accepts at the pinned version.
 13. What is the AI-crawler policy, and is it gated on the same quality thresholds as `noIndex` (FR-22), a stricter bar, or ungated?
 14. Does the agent-task evaluation (FR-34) run against the corpus alone, or against the corpus as retrieved through a channel? The second measures the delivery path as well as the content, and costs more capacity per run.
+15. How large is the citation question set, and at what cadence does it run? This number bounds the capacity a scheduled job can consume against a fixed ceiling, so it is load-bearing rather than cosmetic.
+16. Which engines beyond Claude-with-web-search are worth spot-checking by hand, and how often? Automating them is blocked by metered APIs or the absence of any API at all (ADR 0007).
+17. How are holdout pages chosen, and does the holdout rotate? A fixed holdout risks those pages being systematically under-reached for the life of the project; a rotating one weakens comparability.
 
 ## 14. Licensing and disclosure
 
@@ -239,7 +245,7 @@ Per [ADR 0006](docs/decisions/0006-one-corpus-many-channels.md), the reviewed Ma
 
 | ID | Requirement | Status |
 |---|---|---|
-| FR-25 | Channels render the corpus only: no channel invokes a model, and no channel reads `targets/*/upstream/` or `targets/*/official-docs/` | Decided |
+| FR-25 | No channel holds its own copy of documentation, invokes a model, or reads `targets/*/upstream/` or `targets/*/official-docs/`. A channel may author its own presentation and its own non-documentation pages | Decided |
 | FR-26 | A shared corpus loader enforces the review gate, excluding pages with `reviewed_by: null` from every channel | Decided |
 | FR-27 | Channel builds are deterministic, verified in CI by building twice and comparing | Proposed |
 
@@ -289,23 +295,34 @@ This extends §7.4 with an axis the existing scores do not cover. Style adherenc
 | ID | Requirement | Status |
 |---|---|---|
 | FR-35 | State an explicit AI-crawler policy in `robots.txt`, decided separately from the `noIndex` gate in FR-22 | Proposed |
-| FR-36 | Track citation rate observationally: query a fixed question set against assistants on a schedule and record whether SourceWeave is cited | Proposed |
+| FR-36 | Run a scheduled citation probe over a fixed, versioned question set, recording per question whether SourceWeave was cited, whether the official docs were cited, and whether the answer was accurate against pinned source | Proposed |
+| FR-37 | Publish citation history as a site page, stating which engines are automated, which are spot-checked by hand, and which are not covered | Proposed |
+| FR-38 | Treat retrieval-fitness changes as recorded experiments with a dated hypothesis, evaluated against a holdout set of pages excluded from optional discoverability enhancements | Proposed |
 
 FR-35 exists because FR-22 governs search-engine indexing only. Leaving AI crawling unstated does not produce neutrality — it produces whatever the hosting defaults happen to be. Whether the policy is gated on the same thresholds as `noIndex` is §13 Q13.
 
-FR-36 is deliberately observational. Crawling and ranking behavior is not controllable, so the metric is tracked to learn from and is never a release gate (§10). It also tests an assumption worth testing: direct navigation favors the official docs, but retrieval does not inherit that hierarchy — an assistant cites what is most retrievable and best structured, not what is most official.
+FR-36 through FR-38 are the measurement loop, recorded in [ADR 0007](docs/decisions/0007-citation-tracking.md). Together they make §15.2 falsifiable: without them, retrieval-fitness rules would be followed because they sound right, with no evidence they change anything.
+
+Three constraints are accepted explicitly. **Coverage is partial** — only engines reachable without metered billing are automated, and the published page says which. **Attribution is weak** — one site, no true control, many confounds; results support "consistent with," not "caused by." **The holdout never degrades quality** — it may differ only in discoverability affordances such as `llms.txt` inclusion or summary blocks, never in accuracy, completeness, readability, or review status.
+
+FR-36 also tests an assumption worth testing: direct navigation favors the official docs, but retrieval does not inherit that hierarchy — an assistant cites what is most retrievable and best structured, not what is most official.
+
+The citation page is channel-native site content under [ADR 0006](docs/decisions/0006-one-corpus-many-channels.md). It describes SourceWeave rather than AnythingLLM, so it is not corpus, carries no upstream provenance, and is rendered from committed evaluation output.
 
 **Licensing note.** §14 licenses generated prose CC BY 4.0. Attribution is effectively unenforceable through an AI intermediary, and this project accepts that rather than attempting to prevent it. The position is stated so it reads as a decision rather than an oversight.
 
 ### 15.7 Scope and sequencing
 
-This section adds twelve requirements to a PRD that already has twenty-four, against a fixed capacity ceiling ([ADR 0002](docs/decisions/0002-model-access-via-claude-subscription.md)) and one person's time. It is sequenced so that it does not compete with the work that carries more weight — depth beats surface area here, and a finished, measured slice is worth more than four half-built channels.
+This section adds fourteen requirements to a PRD that already has twenty-four, against a fixed capacity ceiling ([ADR 0002](docs/decisions/0002-model-access-via-claude-subscription.md)) and one person's time. It is sequenced so that it does not compete with the work that carries more weight — depth beats surface area here, and a finished, measured slice is worth more than four half-built channels.
 
 | Tier | Work | Attaches to |
 |---|---|---|
 | **Foundational** | FR-25, FR-26, FR-27 — channel boundary, review gate, determinism check | Before any second channel exists |
 | **Cheap and high-value** | FR-28, FR-29, FR-30 — retrieval surface, deterministic, no capacity cost | M2, alongside the first generated section |
 | **The differentiator** | FR-31, FR-32, FR-34 — MCP server and agent-task evaluation | M4, once evaluation output exists to expose |
-| **Opportunistic** | FR-33, FR-35, FR-36 — workspace bundle, crawler policy, citation tracking | M6, or whenever convenient |
+| **The measurement loop** | FR-35, FR-36, FR-37, FR-38 — crawler policy, citation probe, published page, experiments | M4, once there is a site to cite and a baseline to move |
+| **Opportunistic** | FR-33 — workspace bundle | M6, or whenever convenient |
 
 The MCP server depends on evaluation output, so it cannot meaningfully precede M4. Building it earlier would produce a document index with nothing to distinguish it.
+
+The citation probe wants to start *early* for the opposite reason: its value is the trend, and a trend needs a baseline recorded before optimization work begins. Starting it at M4 alongside the retrieval-fitness work would leave nothing to compare against. If one thing here moves earlier than its tier suggests, it should be FR-36 — running against whatever is published at M2, even if the numbers are zero for months. Zero is a baseline.

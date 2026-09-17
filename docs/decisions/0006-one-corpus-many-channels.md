@@ -26,10 +26,20 @@ There is one canonical corpus. Everything else renders it.
 
 | Channel | Audience | Output |
 |---|---|---|
-| `channels/site/` → `site/` | Humans; portfolio reviewers | Docusaurus HTML |
+| `channels/site/` → `site/` | Humans; portfolio reviewers | Markdown synced into a hand-maintained Docusaurus project |
 | `channels/llms-txt/` | Assistants and crawlers | `llms.txt`, `llms-full.txt`, raw Markdown at page URLs |
 | `channels/mcp/` | Integrating developers, via a coding agent | MCP server over the corpus |
 | `channels/workspace/` | End users, inside their own AnythingLLM | Ingestible document bundle |
+
+### What a channel does and does not own
+
+A channel **does not own documentation**. It never holds a second copy of a page, and never originates prose describing the target.
+
+A channel **does own its own presentation and its own native pages**. Navigation, theme, framing, and pages that are not documentation of the target — a landing page, a methodology writeup, a measurement dashboard — belong to the channel that serves them and are authored there directly.
+
+The test is whether the content describes the target. Anything describing AnythingLLM is corpus, comes from the pipeline, and carries provenance. Anything describing *SourceWeave itself* — how it works, how it scores, how it is doing — is channel-native, and is authored or generated from evaluation output rather than from the corpus.
+
+This matters most for the site, which is the only channel with substantial native content.
 
 Three rules make the separation load-bearing rather than aspirational.
 
@@ -49,7 +59,15 @@ A page whose provenance has `reviewed_by: null` is excluded by the corpus loader
 
 ## Consequences
 
-**The site is a channel, not the product.** It remains the primary human surface and the portfolio artifact, and nothing about its importance changes — but it gets no privileged access to the corpus, and site-shaped structure does not belong in the corpus. Anything a page needs in order to render in Docusaurus and nowhere else is a site concern.
+### The site is a channel, and stays hand-built
+
+"The site is a channel" means it does not own the content. It does **not** mean the site is generated.
+
+`site/` remains a hand-maintained Docusaurus project, and deliberately so: it is the primary human surface and the artifact shown to prospective employers and clients, which makes its theme, landing page, navigation, and custom components worth crafting by hand. `channels/site/` does one narrow job — load the corpus, apply the review gate, and write Markdown with Docusaurus-compatible front matter into `site/docs/`.
+
+Two alternatives were rejected. Emitting the Docusaurus project itself from `channels/site/` would mean generating config, theme, and React from Python, destroying the thing the site exists to be. Pointing Docusaurus directly at `targets/<name>/docs/` would remove the sync step but bypass the review gate entirely — Docusaurus would render `reviewed_by: null` pages — and would force Docusaurus-shaped front matter into the corpus, which is the coupling this record exists to prevent.
+
+`site/docs/` is derived, so it is gitignored rather than committed. Committing it would double every regeneration diff and undercut FR-8's purpose, which is readable diffs on reviewed output. The cost is that the Netlify build must run the sync before `docusaurus build`, which puts a Python step in a Node build. If that proves fragile in practice, committing the synced copy is the fallback — but it is a fallback, not the default.
 
 **Adding a channel touches no shared code.** If a new channel requires a change to `pipeline/` or `eval/`, that is the signal that something belongs in the corpus and does not yet exist there. The correct fix is to add it to the corpus for every channel, not to special-case one.
 

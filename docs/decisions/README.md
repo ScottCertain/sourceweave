@@ -12,6 +12,7 @@ Records are immutable once merged. To change a decision, add a new record that s
 | [0004](0004-licensing-split.md) | MIT for code, CC BY 4.0 for prose | Accepted |
 | [0005](0005-ai-consumption-audience.md) | AI-mediated consumption serves two audiences, not three | Accepted |
 | [0006](0006-one-corpus-many-channels.md) | One corpus, many channels | Accepted |
+| [0007](0007-citation-tracking.md) | Citation rate is measured on a schedule and published | Accepted |
 
 ## Relationship to the PRD
 
