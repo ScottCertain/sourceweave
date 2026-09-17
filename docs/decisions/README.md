@@ -10,6 +10,8 @@ Records are immutable once merged. To change a decision, add a new record that s
 | [0002](0002-model-access-via-claude-subscription.md) | Generation operates under a fixed capacity budget | Accepted |
 | [0003](0003-upstream-integration.md) | Upstream repos as pinned Git submodules | Accepted |
 | [0004](0004-licensing-split.md) | MIT for code, CC BY 4.0 for prose | Accepted |
+| [0005](0005-ai-consumption-audience.md) | AI-mediated consumption serves two audiences, not three | Accepted |
+| [0006](0006-one-corpus-many-channels.md) | One corpus, many channels | Accepted |
 
 ## Relationship to the PRD
 

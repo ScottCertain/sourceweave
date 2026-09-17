@@ -137,6 +137,7 @@ The project doubles as a public portfolio piece, so the pipeline, style guide, e
 sourceweave/
 ├── pipeline/              # generation scripts, prompts, CI glue         (MIT)
 ├── eval/                  # style-adherence and accuracy scoring         (MIT)
+├── channels/              # corpus renderers: site, llms-txt, mcp, ...   (MIT)
 ├── style-guide/           # human-authored style guide                   (CC BY 4.0)
 ├── targets/
 │   └── anythingllm/
@@ -144,6 +145,7 @@ sourceweave/
 │       ├── official-docs/   # submodule: anythingllm-docs, comparison only
 │       └── docs/            # generated and reviewed output               (CC BY 4.0)
 ├── site/                  # Docusaurus project (Netlify base directory)
+│                          #   built by channels/site; one channel among several
 ├── .github/workflows/
 ├── LICENSE                # MIT
 ├── LICENSE-docs           # CC BY 4.0
@@ -164,6 +166,11 @@ Thresholds are TBD and should be set after the first evaluation runs establish a
 | Release lag | Time from an upstream release to a published docs update | TBD |
 | Coverage delta | Topics documented relative to the official docs | TBD |
 | Indexing readiness | All metrics above at threshold, triggering removal of `noIndex` | TBD |
+| Retrieval fitness | Share of pages passing mechanical retrieval checks (§15) | TBD |
+| Agent task success | Share of integration tasks an agent completes correctly using only the corpus | TBD |
+| Citation rate | Share of a fixed question set where an assistant cites SourceWeave | TBD (observational) |
+
+The last three measure the AI-mediated channel (§15). **Citation rate is observational, not a target.** It depends on third-party crawling and ranking behavior that this project does not control, so it is tracked to learn from, never optimized toward a threshold, and never used as a release gate.
 
 ## 11. Milestones
 
@@ -200,6 +207,11 @@ Thresholds are TBD and should be set after the first evaluation runs establish a
 7. Will the preview stream from `master` be published from the start, or added after the stable stream works?
 8. Confirm the license terms of the `anything-llm` code repo.
 9. Confirm the location of the OpenAPI/Swagger spec in the AnythingLLM server code.
+10. How is the MCP server distributed and run — local stdio only, or also a hosted remote endpoint? Hosting adds an operational surface with no revenue behind it; local-only limits reach to people who install it deliberately.
+11. Does the MCP server expose whole pages, or sections retrieved by query? Sections are more useful to an agent and more work to get right, since they must stay self-contained.
+12. What does `channels/workspace/` emit — a flat Markdown bundle, a zip, or an AnythingLLM-native format? Requires confirming what AnythingLLM's workspace ingestion actually accepts at the pinned version.
+13. What is the AI-crawler policy, and is it gated on the same quality thresholds as `noIndex` (FR-22), a stricter bar, or ungated?
+14. Does the agent-task evaluation (FR-34) run against the corpus alone, or against the corpus as retrieved through a channel? The second measures the delivery path as well as the content, and costs more capacity per run.
 
 ## 14. Licensing and disclosure
 
@@ -210,3 +222,90 @@ Thresholds are TBD and should be set after the first evaluation runs establish a
 | Upstream content | Read only; not copied, so no third-party notice required | Decided |
 | Acknowledgment | README notes that comparisons reference the official AnythingLLM docs | Proposed |
 | AI disclosure | README and site state that docs are drafted by an automated pipeline and reviewed against the style guide | Proposed |
+
+## 15. AI-mediated consumption
+
+A growing share of documentation is reached through an assistant rather than a browser. Sections 1–14 assume a human reader throughout. This section covers the mediated path.
+
+The governing principle, recorded in [ADR 0005](docs/decisions/0005-ai-consumption-audience.md): **an AI is a channel, not a beneficiary.** Every requirement here exists to serve a human on the other side of an agent.
+
+**Audiences (Decided).** Two are in scope: end users of AnythingLLM, and developers integrating against it. Integrating developers are primary, because what their agent needs — the version a claim was verified against, whether an example runs, what changed upstream — is what the pipeline already produces for its own purposes. Upstream contributors are explicitly **out of scope**; they have the source in context, and our release-pinned corpus is stale for them by construction.
+
+Model training crawlers are not an audience. They are served regardless and get a policy (FR-34), not a channel.
+
+### 15.1 Corpus and channels
+
+Per [ADR 0006](docs/decisions/0006-one-corpus-many-channels.md), the reviewed Markdown under `targets/<name>/docs/` is the single corpus, and every delivery surface — including the Docusaurus site — is a channel that renders it.
+
+| ID | Requirement | Status |
+|---|---|---|
+| FR-25 | Channels render the corpus only: no channel invokes a model, and no channel reads `targets/*/upstream/` or `targets/*/official-docs/` | Decided |
+| FR-26 | A shared corpus loader enforces the review gate, excluding pages with `reviewed_by: null` from every channel | Decided |
+| FR-27 | Channel builds are deterministic, verified in CI by building twice and comparing | Proposed |
+
+### 15.2 Retrieval surface
+
+Mechanical, deterministic, and cheap. This is the whole of what can actually be engineered about being ingested.
+
+| ID | Requirement | Status |
+|---|---|---|
+| FR-28 | Publish `llms.txt` (index with descriptions) and `llms-full.txt` (concatenated corpus) | Proposed |
+| FR-29 | Serve raw Markdown at a predictable URL for every published page | Proposed |
+| FR-30 | Enforce retrieval-fitness rules mechanically: no load-bearing content in tabs, accordions, or images; stable heading anchors; version stated in page body, not only front matter; sections self-contained enough to survive chunking | Proposed |
+
+FR-30 belongs in Vale wherever a rule can be expressed mechanically, consistent with the existing preference for linter rules over model-scored ones. Retrieval fitness is a distinct property from readability: a page can satisfy the style guide, be factually accurate, and still fail an agent.
+
+### 15.3 MCP server
+
+The differentiated channel, and the one aimed at the primary audience.
+
+This is **not** a general-purpose documentation index. Building one would compete on breadth against established servers that index thousands of libraries, which is not a winnable or interesting contest. It is a single-target server whose distinguishing feature is a quality signal: a general index can serve prose about AnythingLLM but cannot tell the calling agent what version it was verified against or whether the example in it runs. SourceWeave can.
+
+| ID | Requirement | Status |
+|---|---|---|
+| FR-31 | Expose corpus retrieval over MCP, returning upstream version, provenance digests, and code-sample verification status with every response | Proposed |
+| FR-32 | Expose verification-aware tools beyond retrieval: what changed between two versions affecting a given API (FR-17), whether a claim is supported by pinned source (FR-12), and verified executable examples (FR-14) | Proposed |
+
+FR-32 is what makes this a documentation system exposed as a tool rather than a document index. It reuses evaluation output that already exists rather than adding new capability.
+
+### 15.4 Workspace module
+
+| ID | Requirement | Status |
+|---|---|---|
+| FR-33 | Emit a document bundle a user can load into their own AnythingLLM workspace | Proposed |
+
+AnythingLLM is itself a retrieval application, so its own documentation is directly ingestible by it. The channel emits files only — it does not call a running instance, hold credentials, or require a server to test.
+
+### 15.5 Evaluation of the mediated path
+
+| ID | Requirement | Status |
+|---|---|---|
+| FR-34 | Score whether an agent can complete a set of real integration tasks correctly using only the corpus | Proposed |
+
+This extends §7.4 with an axis the existing scores do not cover. Style adherence and factual accuracy are properties of the text; FR-34 measures whether the text is *sufficient and retrievable* for the primary audience. Because code samples are already executed against a pinned instance (FR-14), task success can be graded by execution rather than by judgment.
+
+### 15.6 Crawler policy and disclosure
+
+| ID | Requirement | Status |
+|---|---|---|
+| FR-35 | State an explicit AI-crawler policy in `robots.txt`, decided separately from the `noIndex` gate in FR-22 | Proposed |
+| FR-36 | Track citation rate observationally: query a fixed question set against assistants on a schedule and record whether SourceWeave is cited | Proposed |
+
+FR-35 exists because FR-22 governs search-engine indexing only. Leaving AI crawling unstated does not produce neutrality — it produces whatever the hosting defaults happen to be. Whether the policy is gated on the same thresholds as `noIndex` is §13 Q13.
+
+FR-36 is deliberately observational. Crawling and ranking behavior is not controllable, so the metric is tracked to learn from and is never a release gate (§10). It also tests an assumption worth testing: direct navigation favors the official docs, but retrieval does not inherit that hierarchy — an assistant cites what is most retrievable and best structured, not what is most official.
+
+**Licensing note.** §14 licenses generated prose CC BY 4.0. Attribution is effectively unenforceable through an AI intermediary, and this project accepts that rather than attempting to prevent it. The position is stated so it reads as a decision rather than an oversight.
+
+### 15.7 Scope and sequencing
+
+This section adds twelve requirements to a PRD that already has twenty-four, against a fixed capacity ceiling ([ADR 0002](docs/decisions/0002-model-access-via-claude-subscription.md)) and one person's time. It is sequenced so that it does not compete with the work that carries more weight — depth beats surface area here, and a finished, measured slice is worth more than four half-built channels.
+
+| Tier | Work | Attaches to |
+|---|---|---|
+| **Foundational** | FR-25, FR-26, FR-27 — channel boundary, review gate, determinism check | Before any second channel exists |
+| **Cheap and high-value** | FR-28, FR-29, FR-30 — retrieval surface, deterministic, no capacity cost | M2, alongside the first generated section |
+| **The differentiator** | FR-31, FR-32, FR-34 — MCP server and agent-task evaluation | M4, once evaluation output exists to expose |
+| **Opportunistic** | FR-33, FR-35, FR-36 — workspace bundle, crawler policy, citation tracking | M6, or whenever convenient |
+
+The MCP server depends on evaluation output, so it cannot meaningfully precede M4. Building it earlier would produce a document index with nothing to distinguish it.
