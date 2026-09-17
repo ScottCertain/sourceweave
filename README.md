@@ -92,7 +92,7 @@ Copy `.env.example` to `.env` for local configuration. `.env` is gitignored and 
 
 ## Status
 
-Milestone **M0: Foundation** — repo scaffold. See PRD §11 for the milestone plan.
+Milestone **M0: Foundation**. See [PRD §11](PRD.md#11-milestones) for scope and exit criteria, and [the milestones page](https://github.com/ScottCertain/sourceweave/milestones) for live progress.
 
 | Milestone | Status |
 |---|---|
@@ -101,8 +101,11 @@ Milestone **M0: Foundation** — repo scaffold. See PRD §11 for the milestone p
 | M2 First generation slice | ⬜ Not started |
 | M3 Style guide v1 | ⬜ Not started |
 | M4 Evaluation v1 | ⬜ Not started |
-| M5 Comparison | ⬜ Not started |
-| M6 Expansion | ⬜ Not started |
+| M5 AI-mediated delivery | ⬜ Not started |
+| M6 Comparison | ⬜ Not started |
+| M7 Expansion | ⬜ Not started |
+
+Milestones are scope-boxed: each closes when its exit criteria are met, not on a date.
 
 ## Acknowledgments
 
