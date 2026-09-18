@@ -23,25 +23,36 @@ The OpenAPI spec being a committed file rather than server-emitted output is the
 
 | Path | Contents | Status |
 |---|---|---|
-| `upstream/` | Submodule: `anything-llm`, pinned to a release tag | Not yet added (M1) |
-| `official-docs/` | Submodule: `anythingllm-docs`, comparison baseline only | Not yet added (M1) |
+| `upstream/` | Submodule: `anything-llm`, pinned to `v1.16.1` | **Added** (M1) |
+| `official-docs/` | Submodule: `anythingllm-docs`, comparison baseline only | Deferred to M6 — see below |
 | `docs/` | Generated and reviewed output (CC BY 4.0) | Empty until M2 |
 
-## Adding the submodules (M1)
+## Working with the submodule
 
 ```bash
-git submodule add https://github.com/Mintplex-Labs/anything-llm.git \
-  targets/anythingllm/upstream
-git -C targets/anythingllm/upstream checkout v1.16.1
-
-git submodule add https://github.com/Mintplex-Labs/anythingllm-docs.git \
-  targets/anythingllm/official-docs
-
-git add .gitmodules targets/anythingllm
-git commit -m "Pin AnythingLLM upstream to v1.16.1"
+# after cloning, if you did not use --recurse-submodules
+git submodule update --init targets/anythingllm/upstream
 ```
 
-**Do not initialize recursively.** `anything-llm` carries its own submodules (embed widget, browser extension) that are out of scope and expensive to clone. Use `git submodule update --init`, not `--init --recursive`.
+**Do not initialize recursively.** `anything-llm` carries its own submodules — `embed` and `browser-extension` — that are out of scope and expensive to clone. Use `git submodule update --init`, never `--init --recursive`. A correct checkout shows those two as uninitialized:
+
+```
+$ git -C targets/anythingllm/upstream submodule status
+-385d36c0...  browser-extension
+-7e5c6afc...  embed
+```
+
+The leading `-` means not cloned. That is the desired state.
+
+**Do not shallow-clone this submodule.** `provenance.pinned_version()` reads the version with `git describe --tags --exact-match`. A shallow clone typically lacks tags, so it would not fail — it would silently fall back to a `master@sha` version string, and every generated page would record a weaker pin. The failure would only surface when reading provenance much later.
+
+## Why `official-docs/` is not here yet
+
+[ADR 0003](../../docs/decisions/0003-upstream-integration.md) decides both repos are pinned submodules, and that still holds. What changed is *when* the second one gets added.
+
+`anythingllm-docs` is roughly 306 MB — about three times the size of `anything-llm` — and nothing reads it until the comparison work at M6 (FR-16, FR-17). Netlify cannot be told to skip submodule checkout, so anything in the repository is cloned by every build whether the build wants it or not.
+
+Carrying 306 MB through five milestones to hold a baseline nothing reads is a poor trade, so it is added at M6. This is sequencing rather than a change of decision, so no superseding record is needed.
 
 ## Read-only rules
 
