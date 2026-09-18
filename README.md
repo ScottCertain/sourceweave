@@ -78,8 +78,11 @@ See [ADR 0002](docs/decisions/0002-model-access-via-claude-subscription.md) for 
 ## Getting started
 
 ```bash
-git clone --recurse-submodules https://github.com/ScottCertain/sourceweave.git
+git clone https://github.com/ScottCertain/sourceweave.git
 cd sourceweave
+
+# Upstream source, ~93 MB. Needed for generation; not for working on the site.
+git submodule update --init targets/anythingllm/upstream
 
 # Python side
 python -m venv .venv
@@ -89,6 +92,20 @@ pip install -e ".[dev]"
 # Verify model access (should print the CLI version, not an auth error)
 claude --version
 ```
+
+**Do not clone with `--recurse-submodules`.** It is an alias of `--recursive` and is equivalent to `git submodule update --init --recursive`, so it pulls AnythingLLM's *own* submodules — the embed widget and browser extension — which are out of scope and expensive ([ADR 0003](docs/decisions/0003-upstream-integration.md)). Use the explicit init above.
+
+A correct checkout leaves those uninitialized:
+
+```
+$ git -C targets/anythingllm/upstream submodule status
+-385d36c0...  browser-extension
+-7e5c6afc...  embed
+```
+
+The leading `-` means not cloned. That is the desired state.
+
+Working only on `site/`? Skip the submodule entirely — the site is a channel and never reads upstream ([ADR 0006](docs/decisions/0006-one-corpus-many-channels.md)).
 
 Copy `.env.example` to `.env` for local configuration. `.env` is gitignored and must never hold secrets that belong in CI.
 
