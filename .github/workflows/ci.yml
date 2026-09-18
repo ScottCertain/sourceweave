@@ -45,13 +45,22 @@ jobs:
     name: Build site
     runs-on: ubuntu-latest
     steps:
+      # No submodules. The site renders the corpus; it never reads
+      # targets/*/upstream/ or targets/*/official-docs/ -- ADR 0006 forbids a
+      # channel from reaching into them at all. Checking them out here would
+      # clone ~93 MB of AnythingLLM source on every run to build a site that
+      # does not open it.
+      #
+      # Actions clones fresh each run, with no persistent checkout cache, so
+      # this is a per-run cost rather than a one-off. Netlify is separate: its
+      # submodule checkout cannot be disabled (staff-confirmed; it runs before
+      # any build script, so there is no workaround), and its real cost is
+      # unmeasured. Do not go looking for a Netlify toggle -- there isn't one.
+      #
+      # If a job ever does need upstream, initialise that one path explicitly
+      # rather than turning this back on:
+      #   git submodule update --init targets/anythingllm/upstream
       - uses: actions/checkout@v6
-        with:
-          # No submodules exist yet; they arrive with M1. Harmless now, and
-          # required once the corpus depends on pinned upstream source.
-          # Whether the site build reads that corpus directly or through a
-          # sync step is unresolved -- see issue #12.
-          submodules: true
 
       - uses: actions/setup-node@v4
         with:
