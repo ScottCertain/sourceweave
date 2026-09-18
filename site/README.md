@@ -42,7 +42,7 @@ These are not niceties. Each one implements something stated.
 | Unofficial statement, site-wide | FR-23 | **Set.** Non-closeable announcement bar plus the footer. Verified in CI on every rendered page. |
 | AI-generation disclosure, site-wide | FR-23 | **Set.** Same two places, same CI check. |
 | Version label on every page | FR-19 | **Not yet** — needs the provenance front matter that arrives with M2. |
-| `url` | — | **Live** at [sourceweave.netlify.app](https://sourceweave.netlify.app). Changes to `sourceweave.scottcertain.com` when that domain is configured — issue #19. |
+| `url` | — | **Live** at [sourceweave.scottcertain.com](https://sourceweave.scottcertain.com). Feeds canonical links and the sitemap, so it names the primary host. |
 
 ## The FR-23 notice
 
@@ -70,7 +70,9 @@ Each generated page will carry a `sourceweave:` front matter block — upstream 
 
 ## Netlify
 
-Live at **[sourceweave.netlify.app](https://sourceweave.netlify.app)**, deploying from `main`.
+Live at **[sourceweave.scottcertain.com](https://sourceweave.scottcertain.com)**, deploying from `main`. `sourceweave.netlify.app` remains as the Netlify-assigned host and redirects to the primary domain.
+
+A subdomain rather than a subpath of the personal site, deliberately. `netlify.toml` sets `X-Robots-Tag` for `/*`, which on a shared site would have deindexed the personal site too — silently. It also suits PRD §12: a personal subdomain visibly says *one person made this*, where a product-sounding standalone domain reads more institutional than the project is.
 
 Build settings come from [`netlify.toml`](../netlify.toml) at the repository root, not from the Netlify dashboard — settings that live only in a UI are invisible in review and cannot be reproduced from a commit (NFR-2). `netlify.toml` also overrides the dashboard where both define a value, so the file is the source of truth.
 
