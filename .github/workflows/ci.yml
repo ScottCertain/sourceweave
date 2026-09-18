@@ -44,13 +44,13 @@ jobs:
   site:
     name: Build site
     runs-on: ubuntu-latest
-    # Enable once site/ is scaffolded (M0).
-    if: false
     steps:
       - uses: actions/checkout@v6
         with:
-          # Generated docs live outside site/, in targets/<name>/docs/, and
-          # the build resolves them through the submodule checkout.
+          # No submodules exist yet; they arrive with M1. Harmless now, and
+          # required once the corpus depends on pinned upstream source.
+          # Whether the site build reads that corpus directly or through a
+          # sync step is unresolved -- see issue #12.
           submodules: true
 
       - uses: actions/setup-node@v4
@@ -63,9 +63,36 @@ jobs:
         working-directory: site
         run: npm ci
 
+      # `docusaurus build` does not type-check. Without this step a type error
+      # ships silently, which is the whole reason the site is TypeScript.
+      - name: Typecheck
+        working-directory: site
+        run: npm run typecheck
+
+      # onBrokenLinks: 'throw' means a broken internal link fails here (FR-13).
       - name: Build
         working-directory: site
         run: npm run build
+
+      # FR-22 is a requirement, not a config preference, so it is enforced
+      # rather than trusted. `noIndex: true` in docusaurus.config.ts is one
+      # line someone could flip without meaning to; this fails the build if
+      # any rendered page loses its robots directive.
+      - name: Verify noIndex on every page (FR-22)
+        working-directory: site
+        run: |
+          total=$(find build -name '*.html' | wc -l)
+          if [ "$total" -eq 0 ]; then
+            echo "::error::No HTML produced by the build"
+            exit 1
+          fi
+          missing=$(grep -riL 'noindex' --include='*.html' -r build || true)
+          if [ -n "$missing" ]; then
+            echo "::error::FR-22 violated -- pages rendered without a noindex directive:"
+            echo "$missing"
+            exit 1
+          fi
+          echo "FR-22 holds: noindex present on all $total page(s)."
 
   prose:
     name: Lint prose
