@@ -60,7 +60,9 @@ At M0 there is none: `docs/` holds one placeholder page.
 
 From M2, `docs/` stops being hand-written. `channels/site/` loads the reviewed corpus, applies the review gate so no page with `reviewed_by: null` can render, and writes Markdown here. At that point `site/docs/` becomes a derived directory and is gitignored.
 
-> **Open question.** [ADR 0001](../docs/decisions/0001-pipeline-language.md) says Docusaurus reads `targets/<name>/docs/` directly; [ADR 0006](../docs/decisions/0006-one-corpus-many-channels.md) says it must not, because that bypasses the review gate and pushes Docusaurus-shaped front matter into the corpus. Both are merged and immutable. Tracked in issue #12, to be resolved before M2 when it first matters.
+Settled in [ADR 0008](../docs/decisions/0008-docusaurus-reads-a-synced-copy.md): Docusaurus never reads `targets/<name>/docs/` directly. ADR 0001 said it did; ADR 0006 said it must not, and 0006 wins.
+
+The reason is where the review gate lives. A direct read has nowhere to put it — Docusaurus renders whatever is in the directory — so the check would have to become a Docusaurus plugin, site-specific code enforcing a rule that applies to every channel. The MCP server and `llms.txt` would each need their own copy, and the prohibition on publishing unreviewed content would hold here and quietly fail elsewhere. One gate in the shared loader makes the rule true for every channel at once.
 
 Either way, one constraint holds: **generated pages are plain Markdown with YAML front matter, not Docusaurus-specific MDX.** Where a component is genuinely needed, the component lives here and the page references it by name.
 
@@ -86,4 +88,8 @@ Build settings come from [`netlify.toml`](../netlify.toml) at the repository roo
 
 The header is FR-22 one layer below the meta tag. It covers what a `<meta>` cannot: non-HTML assets, crawlers that read headers without parsing the document, and deploy previews, which get a public URL on every pull request. Both come off together when PRD §10 metrics reach threshold, or the site ends up half-indexed.
 
-Secrets live in Netlify environment variables, never in the repo (NFR-1). Once the corpus lives outside `site/`, the build needs whatever step puts it in place — decided alongside issue #12.
+Secrets live in Netlify environment variables, never in the repo (NFR-1).
+
+From M2 the build must run the `channels/site/` sync before `docusaurus build`, which puts a Python step in a Node build ([ADR 0008](../docs/decisions/0008-docusaurus-reads-a-synced-copy.md)). If that proves fragile, committing the synced copy is the documented fallback — a fallback, not the default.
+
+Separately, Netlify skips a build entirely when nothing under `site/` has changed. A corpus-only update therefore publishes nothing, silently. Tracked in issue #32; it needs fixing before the first generated page ships.

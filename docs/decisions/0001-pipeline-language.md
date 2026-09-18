@@ -1,8 +1,10 @@
 # 0001. Python for pipeline and evaluation, Node for the site
 
-**Status:** Accepted
+**Status:** Accepted — one consequence superseded by [0008](0008-docusaurus-reads-a-synced-copy.md)
 **Date:** 2026-09-16
 **Closes:** PRD §13 Q2
+
+> **Superseded in part.** The Consequences section below says Docusaurus reads `targets/<name>/docs/` directly. It does not: [ADR 0006](0006-one-corpus-many-channels.md) routes content through `channels/site/` into `site/docs/` so the review gate is enforced once for every channel, and [ADR 0008](0008-docusaurus-reads-a-synced-copy.md) records that resolution. Everything else here stands.
 
 ## Context
 
