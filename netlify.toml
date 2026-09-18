@@ -39,3 +39,30 @@
 
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
+
+# One canonical host.
+#
+# sourceweave.scottcertain.com is set as the primary domain in the Netlify UI,
+# which is documented to redirect the Netlify-assigned subdomain to it. It was
+# observed not doing so -- sourceweave.netlify.app kept returning 200 after the
+# setting was applied and after a subsequent deploy. Rather than depend on a
+# dashboard setting whose effect could not be verified, the redirect is stated
+# here, where it is reviewable and reproducible from a commit.
+#
+# `force = true` is required: without it a redirect yields to an existing file,
+# and every path on this site has one.
+#
+# The `from` names the production host exactly, which is the point. A pattern
+# like *.netlify.app would also capture deploy previews
+# (deploy-preview-42--sourceweave.netlify.app) and branch deploys, sending
+# every preview to production and making them useless for review.
+#
+# Until FR-22 is lifted this changes nothing a crawler can see -- both hosts
+# are noindex, and both already emit a canonical pointing here. It matters on
+# the day noIndex comes off, which is exactly when nobody will be thinking
+# about it.
+[[redirects]]
+  from = "https://sourceweave.netlify.app/*"
+  to = "https://sourceweave.scottcertain.com/:splat"
+  status = 301
+  force = true
