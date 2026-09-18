@@ -1,0 +1,197 @@
+name: Upstream release watch
+
+# Detects a new AnythingLLM release and opens a draft PR bumping the pinned
+# submodule (FR-2).
+#
+# No model is invoked. Comparing two commit SHAs needs no help, and ADR 0002
+# keeps model use local and supervised because it is rate-limited rather than
+# metered. The only carve-out that exists is eval/citation/ under ADR 0007.
+#
+# This lives in its own file rather than in ci.yml on purpose. ci.yml runs on
+# every pull request, including from forks, and is deliberately
+# `contents: read`. Write access belongs to this workflow alone.
+
+on:
+  schedule:
+    # 07:00 UTC daily. Upstream releases are weeks apart, so this is generous;
+    # the point is to notice within a day, not within an hour.
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+    inputs:
+      simulate_tag:
+        description: >-
+          Test only. Treat this tag as the latest release instead of asking
+          the API. Exists because the scheduled path can only ever exercise
+          the "already up to date" branch while the pin is current, leaving
+          the half that pushes a branch and opens a PR untested until the
+          morning it actually matters. Run it with an older tag (e.g.
+          v1.16.0), confirm a draft PR appears, then close the PR and delete
+          the branch.
+        required: false
+        type: string
+
+# Read-only by default. The job that writes elevates itself explicitly.
+permissions:
+  contents: read
+
+# Never let two runs race to open the same bump PR.
+concurrency:
+  group: upstream-release-watch
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Check for a new upstream release
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # push the bump branch
+      pull-requests: write # open the draft PR
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+      UPSTREAM_REPO: Mintplex-Labs/anything-llm
+      SUBMODULE_PATH: targets/anythingllm/upstream
+
+    steps:
+      # No submodules. The pinned commit is readable from the tree with
+      # `git ls-tree`, and the bump is written straight into the index, so
+      # cloning ~93 MB to change one line would be pure waste.
+      - uses: actions/checkout@v6
+
+      - name: Compare the pinned commit against the latest release
+        id: compare
+        run: |
+          set -euo pipefail
+
+          pinned=$(git ls-tree HEAD "$SUBMODULE_PATH" | awk '{print $3}')
+          if [ -z "$pinned" ]; then
+            echo "::error::No submodule gitlink at $SUBMODULE_PATH"
+            exit 1
+          fi
+
+          simulate="${{ inputs.simulate_tag }}"
+          if [ -n "$simulate" ]; then
+            echo "::warning::Simulating latest release as $simulate (manual test run)"
+            tag="$simulate"
+          else
+            tag=$(gh api "repos/$UPSTREAM_REPO/releases/latest" --jq '.tag_name')
+          fi
+          # Validate before using it in a URL. A failed `gh api` call aborts
+          # under `set -e`, but a successful call can still return "null" (a
+          # repo with no releases), and an unvalidated value here would be
+          # interpolated into the next request and then into a branch name.
+          # Seen in testing: a 401 body flowed through as the tag and the
+          # comparison happily reported "bump needed".
+          case "$tag" in
+            ""|null)
+              echo "::error::No release tag returned for $UPSTREAM_REPO"
+              exit 1
+              ;;
+          esac
+
+          # Resolves through an annotated tag object to the commit it points at,
+          # which is what a gitlink stores.
+          latest=$(gh api "repos/$UPSTREAM_REPO/commits/$tag" --jq '.sha')
+          if ! printf '%s' "$latest" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::Expected a 40-character commit SHA for $tag, got: $latest"
+            exit 1
+          fi
+
+          echo "pinned=$pinned"  >> "$GITHUB_OUTPUT"
+          echo "tag=$tag"        >> "$GITHUB_OUTPUT"
+          echo "latest=$latest"  >> "$GITHUB_OUTPUT"
+
+          if [ "$pinned" = "$latest" ]; then
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+            echo "Pinned at $tag ($pinned). Up to date."
+          else
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+            echo "New release $tag ($latest). Pinned at $pinned."
+          fi
+
+      - name: Open a draft bump PR
+        if: steps.compare.outputs.needed == 'true'
+        env:
+          TAG: ${{ steps.compare.outputs.tag }}
+          LATEST: ${{ steps.compare.outputs.latest }}
+          PINNED: ${{ steps.compare.outputs.pinned }}
+        run: |
+          set -euo pipefail
+
+          branch="upstream-bump-${TAG}"
+
+          # Idempotent in two directions: a run that already opened a PR, and a
+          # run that pushed a branch but died before opening one. Without both,
+          # a daily schedule opens a duplicate every morning until someone
+          # merges.
+          if [ -n "$(gh pr list --head "$branch" --state open --json number --jq '.[].number')" ]; then
+            echo "A PR for $branch is already open. Nothing to do."
+            exit 0
+          fi
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            echo "Branch $branch already exists on origin. Nothing to do."
+            exit 0
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b "$branch"
+
+          # Rewrite the gitlink directly in the index. 160000 is the mode git
+          # uses for a submodule entry. This is why no clone is needed.
+          git update-index --add --cacheinfo "160000,$LATEST,$SUBMODULE_PATH"
+
+          git commit -m "Bump AnythingLLM upstream to ${TAG}
+
+          Pointer only: ${PINNED:0:12} -> ${LATEST:0:12}.
+
+          Opened automatically by the upstream release watch (FR-2). The
+          submodule pointer is the version record, so this one line is the
+          whole version bump."
+
+          git push -u origin "$branch"
+
+          gh pr create \
+            --draft \
+            --base main \
+            --head "$branch" \
+            --title "Bump AnythingLLM upstream to ${TAG}" \
+            --body "$(cat <<EOF
+          Upstream released **${TAG}**. This bumps the pinned submodule.
+
+          | | |
+          |---|---|
+          | From | \`${PINNED}\` |
+          | To | \`${LATEST}\` (\`${TAG}\`) |
+
+          Opened automatically by [\`upstream-release-watch.yml\`](.github/workflows/upstream-release-watch.yml). Draft, because a version bump is a decision, not a formality — PRD §11 keeps upstream tracking reviewable (FR-1).
+
+          ## The diff is one line, and that line is the point
+
+          The submodule pointer *is* the version record. There is nothing else to read here, so reviewing means looking at what changed **upstream**, not at this diff:
+
+          - [Release notes for ${TAG}](https://github.com/${UPSTREAM_REPO}/releases/tag/${TAG})
+          - [Compare ${PINNED:0:12}...${LATEST:0:12}](https://github.com/${UPSTREAM_REPO}/compare/${PINNED}...${LATEST})
+
+          ## What to check before merging
+
+          - [ ] Did \`server/swagger/openapi.json\` change? That is the source for API reference generation (FR-5), so a change means pages will regenerate.
+          - [ ] New, removed, or renamed environment variables and settings — these are described in prose that may now be wrong.
+          - [ ] Anything in the release notes that contradicts a published page.
+
+          Merging this changes what generation describes. Pages whose recorded source digests have changed will regenerate on the next run; pages whose sources did not change will not (FR-8, and the incremental-regeneration requirement in ADR 0002).
+
+          ## Note on CI
+
+          This PR was opened with \`GITHUB_TOKEN\`, so it does not trigger other workflows — expect no checks. That is a deliberate GitHub behaviour to prevent recursive runs. Today CI would verify little here anyway, since nothing in the build reads the submodule. Push an empty commit to run checks if that changes.
+          EOF
+          )"
+
+          echo "Opened draft PR for $TAG"
+
+      - name: Report
+        if: steps.compare.outputs.needed != 'true'
+        run: |
+          echo "Upstream is at ${{ steps.compare.outputs.tag }} and the submodule is pinned there. Nothing to do."
