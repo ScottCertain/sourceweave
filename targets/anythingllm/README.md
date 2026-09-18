@@ -54,6 +54,27 @@ The leading `-` means not cloned. That is the desired state.
 
 Carrying 306 MB through five milestones to hold a baseline nothing reads is a poor trade, so it is added at M6. This is sequencing rather than a change of decision, so no superseding record is needed.
 
+## Version bumps are one line, and that line is the review
+
+A submodule entry stores a commit SHA, so bumping the pin produces exactly this:
+
+```diff
+-Subproject commit 35c58d89907e675a8c4fb10544c19be0f050f611
++Subproject commit 55b6ebcea132f0d7ac146da99a0cd0db507b9030
+```
+
+That is FR-1 working as intended: **the pointer is the version record.** No vendored dump, no thousand-file diff.
+
+It also means a bump PR looks like noise and is easy to rubber-stamp. There is nothing to read in the diff, so reviewing means reading what changed *upstream* — the release notes and the compare view, which the release-watch workflow links in every PR it opens.
+
+Worth checking on any bump:
+
+- Did `server/swagger/openapi.json` change? It is the source for API reference generation (FR-5), so a change means pages regenerate.
+- New, removed, or renamed environment variables and settings — published prose may now be wrong.
+- Anything in the release notes that contradicts a page.
+
+Merging changes what generation describes. It does not change a single published page: regeneration is a separate, local, supervised step ([ADR 0002](../../docs/decisions/0002-model-access-via-claude-subscription.md)), and review comes after that.
+
 ## Read-only rules
 
 Both submodules are inputs. Two rules, and the second is a legal one:
