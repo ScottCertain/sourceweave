@@ -193,6 +193,12 @@ htmlcov/
 .vale/styles/*
 !.vale/styles/SourceWeave/
 
+# Scratch space. Screenshots, pasted logs, anything captured while
+# investigating. Nothing here is an input to generation or a record of a
+# decision -- if something found here matters, it belongs in an issue, an ADR,
+# or a commit message, not in a folder called temp.
+temp/
+
 # ---------------------------------------------------------------------------
 # Editors and OS
 # ---------------------------------------------------------------------------
