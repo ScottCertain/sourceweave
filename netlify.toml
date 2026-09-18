@@ -1,0 +1,41 @@
+# Netlify configuration.
+#
+# Committed rather than configured in the Netlify UI, for the same reason
+# pipeline/claude-settings.json is pinned rather than inherited: build settings
+# that live only in a dashboard are invisible in review, absent from history,
+# and impossible to reproduce from a commit (NFR-2).
+#
+# No secrets here, and none ever (NFR-1). Anything sensitive belongs in Netlify
+# environment variables.
+
+[build]
+  # Paths are relative to the repository root; `publish` is relative to `base`,
+  # so this resolves to site/build.
+  base    = "site"
+  command = "npm run build"
+  publish = "build"
+
+[build.environment]
+  # Matches the Node version CI builds with, so a build that passes in CI is
+  # not the first to fail here. site/package.json requires >=20.0.
+  NODE_VERSION = "20"
+
+# FR-22, defence in depth.
+#
+# docusaurus.config.ts emits <meta name="robots" content="noindex, nofollow">
+# into every page and CI fails the build if any page loses it. This header does
+# the same job one layer lower, and covers what the meta tag cannot: non-HTML
+# assets, and any crawler that reads headers without parsing the document.
+#
+# It applies to every deploy context, which matters most for deploy previews --
+# those get public URLs on every pull request, and they should not be indexable
+# either.
+#
+# Removing this is part of the same deliberate decision as removing noIndex,
+# once the metrics in PRD section 10 reach threshold. Both come off together or
+# the site is half-indexed.
+[[headers]]
+  for = "/*"
+
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
