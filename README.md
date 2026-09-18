@@ -29,20 +29,54 @@ The site is published with `noIndex: true` until output quality meets the thresh
 ## How it works
 
 ```
-upstream source (pinned)  ──►  pipeline/  ──►  draft
-                                                 │
-                       style-guide/  ──►  eval/  ┤  scored for style + accuracy
-                                                 │
-                                          human review
-                                                 │
-                                targets/*/docs/  ──►  site/  ──►  Netlify
+  targets/<name>/upstream/               pinned upstream source (read-only)
+             │
+             │   pipeline/ — drafts, grounded in that source
+             ▼
+  targets/<name>/docs/                   THE CORPUS — the only place
+      page.md + provenance                documentation is written.
+      reviewed_by: <human>                Committed. Reviewed here.
+             │
+             ▼
+     ┌───────────────────────┐
+     │  shared corpus loader │  excludes reviewed_by: null  (FR-26)
+     │  one review gate      │  enforced once, for every channel
+     └──────────┬────────────┘
+                │
+   ┌────────────┼─────────────┬──────────────────┐
+   ▼            ▼             ▼                  ▼
+channels/    channels/     channels/         channels/
+ site/       llms-txt/      mcp/             workspace/
+   │            │             │                  │
+   ▼            ▼             ▼                  ▼
+site/docs/   llms.txt     MCP server        document bundle
+docusaurus   raw .md      + provenance             │
+   │            │         + verification           │
+   ▼            ▼             ▼                    ▼
+Netlify     crawlers &   coding agents      the reader's own
+ humans     assistants    (integrators)      AnythingLLM
 ```
 
+`eval/` also reads the corpus — and `official-docs/` from M6 — to score it. It is not a channel because it publishes nothing.
+
 1. **Pin** — upstream repos are Git submodules pinned to a release tag.
-2. **Generate** — `pipeline/` assembles grounded context from the pinned source and drafts pages. Generation is grounded in the pinned inputs, not model memory.
+2. **Generate** — `pipeline/` assembles grounded context from the pinned source and drafts pages. Grounded in the pinned inputs, not model memory: generation is denied network access, so it cannot describe anything else.
 3. **Evaluate** — `eval/` scores drafts for style-guide adherence and factual accuracy against source.
-4. **Review** — a human edits the output. Those edits feed back into `style-guide/`.
-5. **Publish** — reviewed output is committed, built with Docusaurus, and deployed to Netlify.
+4. **Review** — a human edits the output and records themselves in `reviewed_by`. Those edits feed back into `style-guide/`.
+5. **Publish** — each channel renders the reviewed corpus. No channel holds its own copy of documentation, and none can publish a page the gate excluded.
+
+**Documentation is written in exactly one place.** Everything below the corpus is a rendering of it, which is why the review gate sits in the shared loader rather than in any one channel — four surfaces, one check. See [ADR 0006](docs/decisions/0006-one-corpus-many-channels.md).
+
+| Channel | Serves | Arrives |
+|---|---|---|
+| `site/` | Humans; portfolio reviewers | M2 |
+| `llms-txt/` | Crawlers and general assistants | M5 |
+| `mcp/` | Integrating developers, through their coding agent | M5 |
+| `workspace/` | End users, inside their own AnythingLLM | M7 |
+
+The MCP channel is the differentiated one: a general documentation index can serve prose about AnythingLLM, but it cannot say which version a claim was verified against or whether the example runs. That metadata already exists for internal reasons, so exposing it is packaging rather than new capability.
+
+**None of `channels/` exists yet.** Today `site/` is a plain Docusaurus project rendering a placeholder; the corpus is empty until M2.
 
 ## Repository layout
 
@@ -50,9 +84,10 @@ upstream source (pinned)  ──►  pipeline/  ──►  draft
 |---|---|---|
 | [pipeline/](pipeline/) | Generation scripts, prompts, CI glue (Python) | MIT |
 | [eval/](eval/) | Style-adherence and accuracy scoring (Python) | MIT |
+| `channels/` | Corpus renderers — site, `llms.txt`, MCP, workspace. *Not yet created; M2 onward.* | MIT |
 | [style-guide/](style-guide/) | Human-authored style guide | CC BY 4.0 |
-| [targets/anythingllm/](targets/anythingllm/) | Target-specific submodules and generated output | CC BY 4.0 (docs) |
-| [site/](site/) | Docusaurus project, Netlify base directory | MIT |
+| [targets/anythingllm/](targets/anythingllm/) | Target-specific submodules and the corpus | CC BY 4.0 (docs) |
+| [site/](site/) | Docusaurus project, Netlify base directory. Built by `channels/site/` — one channel among several | MIT |
 | [docs/decisions/](docs/decisions/) | Architecture decision records | CC BY 4.0 |
 | [.github/workflows/](.github/workflows/) | CI | MIT |
 
