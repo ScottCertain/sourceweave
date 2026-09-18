@@ -39,10 +39,20 @@ These are not niceties. Each one implements something stated.
 |---|---|---|
 | `noIndex: true` | FR-22 | **Set.** Verified in built HTML as `<meta name=robots content="noindex, nofollow">` on every page. Stays until the metrics in PRD §10 reach threshold; removing it is a deliberate, recorded decision. |
 | `onBrokenLinks: 'throw'` | FR-13 | **Set.** A broken link fails the build. Generated content makes link rot easy to introduce and easy to miss. |
-| Unofficial statement, site-wide | FR-23 | **Not yet** — issue #6. Present on the landing page only. |
-| AI-generation disclosure, site-wide | FR-23 | **Not yet** — issue #6. Present on the landing page only. |
+| Unofficial statement, site-wide | FR-23 | **Set.** Non-closeable announcement bar plus the footer. Verified in CI on every rendered page. |
+| AI-generation disclosure, site-wide | FR-23 | **Set.** Same two places, same CI check. |
 | Version label on every page | FR-19 | **Not yet** — needs the provenance front matter that arrives with M2. |
 | `url` | — | **Provisional** (`sourceweave.netlify.app`) until the Netlify site exists, issue #8. |
+
+## The FR-23 notice
+
+Two places, deliberately, because they fail differently.
+
+The **announcement bar** is prominent but sits above the fold; a reader who scrolls straight into a page may never register it. The **footer** is easy to overlook but is permanent and terminates every page. Together they cover both reading patterns.
+
+`isCloseable: false` is the load-bearing setting. A dismissible banner is dismissed once, per browser, and then never seen again — acceptable for a promotion, wrong for a disclosure. PRD §12 treats "users mistake SourceWeave for official docs" as a per-page risk, not a per-visitor one.
+
+Both statements are checked in CI against the rendered HTML, so losing either fails the build rather than shipping quietly.
 
 ## Where the content comes from
 

@@ -17,6 +17,45 @@
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 }
 
+/**
+ * FR-23 announcement bar.
+ *
+ * The bar is not closeable, so it is permanent furniture rather than a
+ * dismissible interruption. That means it has to stay readable and stay out of
+ * the way: comfortable line height, wrapping on narrow screens instead of
+ * clipping, and a link that is legible against the bar rather than inheriting
+ * the page link colour.
+ */
+div[class^='announcementBar_'] {
+  --site-announcement-height: auto;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding: 0.55rem 1rem;
+  text-align: center;
+  font-weight: 500;
+}
+
+div[class^='announcementBar_'] a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+div[class^='announcementBar_'] a:hover {
+  color: inherit;
+  text-decoration-thickness: 2px;
+}
+
+/* The footer disclosure runs longer than a conventional copyright line.
+   Keep it readable rather than letting it stretch the full viewport. */
+.footer__copyright {
+  max-width: 62rem;
+  margin: 0 auto;
+  line-height: 1.6;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
 /* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme='dark'] {
   --ifm-color-primary: #25c2a0;

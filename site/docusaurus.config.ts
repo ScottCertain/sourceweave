@@ -68,6 +68,22 @@ const config: Config = {
     colorMode: {
       respectPrefersColorScheme: true,
     },
+    // FR-23, first half: the unofficial statement and the AI-generation
+    // disclosure, site-wide.
+    //
+    // isCloseable: false is the load-bearing setting. A dismissible banner is
+    // dismissed once, per browser, and then never seen again -- which is fine
+    // for a promotion and wrong for a disclosure. PRD section 12 lists "users
+    // mistake SourceWeave for official docs" as a risk to mitigate on every
+    // page, not once per visitor.
+    announcementBar: {
+      id: 'unofficial-ai-generated',
+      content:
+        'Independent and unofficial. These pages are drafted by an automated pipeline and may contain errors. Official documentation: <a target="_blank" rel="noopener" href="https://docs.anythingllm.com">docs.anythingllm.com</a>',
+      backgroundColor: '#563d0e',
+      textColor: '#fdf3d8',
+      isCloseable: false,
+    },
     navbar: {
       title: 'SourceWeave',
       // No logo. The template's branding assets were removed rather than
@@ -117,8 +133,14 @@ const config: Config = {
           ],
         },
       ],
+      // FR-23, second half. The banner is prominent; this is permanent and
+      // sits at the end of every page, so the statement survives a reader who
+      // scrolls past the top of the page without registering it.
       copyright:
-        'Documentation CC BY 4.0, code MIT. Independent and unofficial -- not affiliated with or endorsed by Mintplex Labs.',
+        'Independent and unofficial -- not affiliated with, endorsed by, or supported by Mintplex Labs. ' +
+        'Documentation on this site is drafted by an automated pipeline and reviewed by a human before publication; ' +
+        'every page records the source it was generated from. ' +
+        'Documentation CC BY 4.0, code MIT.',
     },
     prism: {
       theme: prismThemes.github,

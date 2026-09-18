@@ -94,6 +94,27 @@ jobs:
           fi
           echo "FR-22 holds: noindex present on all $total page(s)."
 
+      # FR-23 requires both statements on the site, not just in the README.
+      # Checked the same way FR-22 is: a requirement that can be verified
+      # mechanically should not depend on someone remembering it. Both strings
+      # come from the non-closeable announcement bar and the footer, so losing
+      # either one fails here rather than shipping quietly.
+      - name: Verify unofficial and AI-generation notice (FR-23)
+        working-directory: site
+        run: |
+          total=$(find build -name '*.html' | wc -l)
+          fail=0
+          for phrase in 'Independent and unofficial' 'automated pipeline'; do
+            missing=$(grep -rLF "$phrase" --include='*.html' -r build || true)
+            if [ -n "$missing" ]; then
+              echo "::error::FR-23 violated -- pages missing \"$phrase\":"
+              echo "$missing"
+              fail=1
+            fi
+          done
+          [ "$fail" -eq 0 ] || exit 1
+          echo "FR-23 holds: unofficial statement and AI disclosure on all $total page(s)."
+
   prose:
     name: Lint prose
     runs-on: ubuntu-latest
