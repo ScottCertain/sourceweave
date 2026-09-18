@@ -1,13 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Read(targets/**)",
+      "Read(targets/*/upstream/**)",
+      "Read(targets/*/docs/**)",
       "Read(pipeline/prompts/**)",
       "Read(style-guide/**)",
       "Glob",
       "Grep"
     ],
     "deny": [
+      "Read(targets/*/official-docs/**)",
       "Write(targets/*/upstream/**)",
       "Write(targets/*/official-docs/**)",
       "Edit(targets/*/upstream/**)",

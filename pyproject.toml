@@ -37,6 +37,18 @@ packages = [
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# The upstream submodules are third-party source, read-only by a CLAUDE.md
+# hard rule. Without this, `ruff check .` reports errors in code we do not own
+# and cannot fix -- and `ruff format .`, which CLAUDE.md documents as a
+# standard command, would rewrite files inside a read-only submodule.
+#
+# It also keeps local and CI behaviour identical. CI checks out without
+# submodules, so it lints an empty directory and passes; a contributor with
+# the submodule initialised would see failures CI never shows.
+extend-exclude = [
+    "targets/*/upstream",
+    "targets/*/official-docs",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
