@@ -1,0 +1,148 @@
+name: Upstream API drift watch
+
+# Notices docs-affecting API changes on the upstream default branch between
+# releases (FR-3).
+#
+# ADR 0003 reduced this to something tractable: diff
+# server/swagger/openapi.json between the pinned tag and master -- a
+# structured diff on a structured file, rather than heuristics over prose.
+#
+# No model is invoked. Comparing two JSON documents needs no help, and ADR 0002
+# keeps model use local and supervised.
+
+on:
+  schedule:
+    # Weekly, Monday 07:00 UTC. Deliberately not daily: master moves
+    # constantly, most of it never touches the API surface, and an alert that
+    # fires often gets ignored -- which is worse than not having one.
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upstream-drift-watch
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    name: Compare the pinned API spec against upstream default
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      issues: write # maintain the single drift issue
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+      UPSTREAM_REPO: Mintplex-Labs/anything-llm
+      UPSTREAM_BRANCH: master
+      SPEC_PATH: server/swagger/openapi.json
+      SUBMODULE_PATH: targets/anythingllm/upstream
+      DRIFT_LABEL: upstream-drift
+
+    steps:
+      # No submodules. The pinned commit comes from the tree, and both copies
+      # of the spec are fetched through the API -- so this never clones the
+      # 93 MB upstream repository to compare one 128 KB file.
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install
+        run: pip install -e .
+
+      - name: Fetch both copies of the spec
+        id: fetch
+        run: |
+          set -euo pipefail
+
+          pinned=$(git ls-tree HEAD "$SUBMODULE_PATH" | awk '{print $3}')
+          if [ -z "$pinned" ]; then
+            echo "::error::No submodule gitlink at $SUBMODULE_PATH"
+            exit 1
+          fi
+
+          # Resolve the pinned commit back to its release tag for readability.
+          # Falls back to a short SHA when the pin is not on a tag, which is
+          # the preview-stream case in FR-20.
+          tag=$(gh api "repos/$UPSTREAM_REPO/tags" --paginate \
+                  --jq ".[] | select(.commit.sha == \"$pinned\") | .name" | head -1)
+          [ -n "$tag" ] || tag="${pinned:0:12}"
+
+          fetch_spec() {
+            gh api "repos/$UPSTREAM_REPO/contents/$SPEC_PATH?ref=$1" \
+              -H "Accept: application/vnd.github.raw" > "$2"
+            # A 404 page or an error body would parse as "not JSON" later;
+            # fail here instead, where the message is clear.
+            python -c "import json,sys; json.load(open(sys.argv[1]))" "$2"
+          }
+
+          fetch_spec "$pinned" pinned.json
+          fetch_spec "$UPSTREAM_BRANCH" candidate.json
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Compare
+        id: compare
+        run: |
+          set -uo pipefail
+          # Exit code is the signal: 0 no drift, 1 drift. Anything else is a
+          # real failure and must not be swallowed.
+          set +e
+          python -m sourceweave_pipeline.openapi_drift \
+            pinned.json candidate.json \
+            --pinned-ref "${{ steps.fetch.outputs.tag }}" \
+            --candidate-ref "$UPSTREAM_BRANCH" > report.md
+          status=$?
+          set -e
+
+          if [ "$status" -gt 1 ]; then
+            echo "::error::Drift comparison failed"
+            cat report.md || true
+            exit "$status"
+          fi
+
+          echo "drift=$([ "$status" -eq 1 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          cat report.md
+
+      - name: Maintain the drift issue
+        env:
+          DRIFT: ${{ steps.compare.outputs.drift }}
+          TAG: ${{ steps.fetch.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          # One issue, kept current -- not one per run. A weekly job that opens
+          # an issue every week trains you to ignore it.
+          gh label create "$DRIFT_LABEL" \
+            --color d4c5f9 \
+            --description "Upstream API spec has moved ahead of the pinned release" \
+            --force >/dev/null
+
+          existing=$(gh issue list --label "$DRIFT_LABEL" --state open \
+                       --json number --jq '.[0].number // empty')
+
+          title="Upstream API drift: $UPSTREAM_BRANCH ahead of $TAG"
+          body="$(cat report.md)
+
+          ---
+          <sub>Maintained by [\`upstream-drift-watch.yml\`](.github/workflows/upstream-drift-watch.yml). This issue is rewritten on each run and closes itself when the pin catches up.</sub>"
+
+          if [ "$DRIFT" = "true" ]; then
+            if [ -n "$existing" ]; then
+              gh issue edit "$existing" --title "$title" --body "$body"
+              echo "Updated #$existing"
+            else
+              gh issue create --title "$title" --body "$body" --label "$DRIFT_LABEL"
+            fi
+          elif [ -n "$existing" ]; then
+            gh issue close "$existing" \
+              --comment "The pinned spec now matches \`$UPSTREAM_BRANCH\`. Closing; a future run reopens a fresh issue if drift returns."
+            echo "Closed #$existing"
+          else
+            echo "No drift, no open issue. Nothing to do."
+          fi
