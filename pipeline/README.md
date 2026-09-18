@@ -70,4 +70,10 @@ Treat a change to it the way you would treat a prompt change — it changes gene
 
 Its deny list is doing real work. Blocking `Bash`, `WebFetch`, and `WebSearch` makes grounding (PRD FR-4) an **enforced property** rather than a prompt instruction: generation physically cannot reach the network, so it cannot describe anything but the pinned source. A prompt that says "use only the supplied source" is a request; a denied tool is a guarantee.
 
+The read list does the same work for a different rule. Generation can read `targets/*/upstream/**` — the code, which is the source of truth for behaviour — and `targets/*/docs/**`, its own prior output and provenance. It **cannot read `targets/*/official-docs/**`**, which is denied explicitly as well as omitted from the allow list, so a later broadening of the allow list cannot quietly reopen it.
+
+That guards the project's central claim. CLAUDE.md forbids copying from the official docs because it "breaks a stated non-goal and makes the project's independence claim false." Two things fail if generation reads them: accuracy scoring (FR-12) stops measuring truth and starts measuring fidelity to someone else's prose, and the M6 comparison goes circular — gap and drift analysis exists partly to find where the official docs disagree with the code (FR-17), which is impossible if their errors were inherited.
+
+The official docs are read by `eval/`, at comparison time, and by nothing else.
+
 Permissions for working in the repo by hand belong in `.claude/settings.json`, not here. That file is deliberately excluded from the fingerprint — Claude Code writes to it when you approve a permission, and including it would report drift across the whole corpus for a change that never touched generation.
