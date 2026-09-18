@@ -4,6 +4,8 @@ A generation-focused documentation system. It reads an open-source project's sou
 
 The first target is [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) by Mintplex Labs.
 
+**Site:** [sourceweave.netlify.app](https://sourceweave.netlify.app) — published with `noIndex` until output quality meets the thresholds in [PRD §10](PRD.md#10-success-metrics). There is no generated documentation on it yet; the first section arrives at M2.
+
 See [PRD.md](PRD.md) for the full product requirements, and [docs/decisions/](docs/decisions/) for the architecture decision record.
 
 ---
@@ -92,12 +94,12 @@ Copy `.env.example` to `.env` for local configuration. `.env` is gitignored and 
 
 ## Status
 
-Milestone **M0: Foundation**. See [PRD §11](PRD.md#11-milestones) for scope and exit criteria, and [the milestones page](https://github.com/ScottCertain/sourceweave/milestones) for live progress.
+Milestone **M1: Upstream wiring**. See [PRD §11](PRD.md#11-milestones) for scope and exit criteria, and [the milestones page](https://github.com/ScottCertain/sourceweave/milestones) for live progress.
 
 | Milestone | Status |
 |---|---|
-| M0 Foundation | 🟡 In progress |
-| M1 Upstream wiring | ⬜ Not started |
+| M0 Foundation | ✅ Complete |
+| M1 Upstream wiring | 🟡 In progress |
 | M2 First generation slice | ⬜ Not started |
 | M3 Style guide v1 | ⬜ Not started |
 | M4 Evaluation v1 | ⬜ Not started |

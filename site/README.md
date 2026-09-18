@@ -42,7 +42,7 @@ These are not niceties. Each one implements something stated.
 | Unofficial statement, site-wide | FR-23 | **Set.** Non-closeable announcement bar plus the footer. Verified in CI on every rendered page. |
 | AI-generation disclosure, site-wide | FR-23 | **Set.** Same two places, same CI check. |
 | Version label on every page | FR-19 | **Not yet** — needs the provenance front matter that arrives with M2. |
-| `url` | — | **Provisional** (`sourceweave.netlify.app`) until the Netlify site exists, issue #8. |
+| `url` | — | **Live** at [sourceweave.netlify.app](https://sourceweave.netlify.app). Changes to `sourceweave.scottcertain.com` when that domain is configured — issue #19. |
 
 ## The FR-23 notice
 
@@ -70,10 +70,18 @@ Each generated page will carry a `sourceweave:` front matter block — upstream 
 
 ## Netlify
 
-| Setting | Value |
-|---|---|
-| Base directory | `site` |
-| Build command | `npm run build` |
-| Publish directory | `site/build` |
+Live at **[sourceweave.netlify.app](https://sourceweave.netlify.app)**, deploying from `main`.
+
+Build settings come from [`netlify.toml`](../netlify.toml) at the repository root, not from the Netlify dashboard — settings that live only in a UI are invisible in review and cannot be reproduced from a commit (NFR-2). `netlify.toml` also overrides the dashboard where both define a value, so the file is the source of truth.
+
+| Setting | Value | Source |
+|---|---|---|
+| Base directory | `site` | `netlify.toml` |
+| Build command | `npm run build` | `netlify.toml` |
+| Publish directory | `site/build` | `netlify.toml` |
+| Node version | 20 | `netlify.toml`, matching CI |
+| `X-Robots-Tag` | `noindex, nofollow` on `/*` | `netlify.toml` |
+
+The header is FR-22 one layer below the meta tag. It covers what a `<meta>` cannot: non-HTML assets, crawlers that read headers without parsing the document, and deploy previews, which get a public URL on every pull request. Both come off together when PRD §10 metrics reach threshold, or the site ends up half-indexed.
 
 Secrets live in Netlify environment variables, never in the repo (NFR-1). Once the corpus lives outside `site/`, the build needs whatever step puts it in place — decided alongside issue #12.

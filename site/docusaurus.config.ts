@@ -17,7 +17,9 @@ const config: Config = {
     v4: true,
   },
 
-  // Provisional until the Netlify site exists (issue #8).
+  // The live deploy target. Changes to https://sourceweave.scottcertain.com
+  // once that domain is configured (issue #19) -- this value feeds canonical
+  // links and the sitemap, so it has to name a host that actually answers.
   url: 'https://sourceweave.netlify.app',
   baseUrl: '/',
 
