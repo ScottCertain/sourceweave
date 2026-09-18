@@ -64,6 +64,10 @@ Standard sequence for any change:
 
 Branch deletion is automated in two places so it does not depend on remembering: the repository has `delete_branch_on_merge` enabled, and `fetch.prune` is set so stale remote-tracking refs clear themselves. The `--delete-branch` flag is still the explicit habit.
 
+The merge method is enforced the same way. `allow_squash_merge` and `allow_rebase_merge` are both disabled on the repository, so the only option the UI offers is a merge commit. Rule 4 above is therefore not something to remember at the moment of merging — which is when it was previously broken, by a dropdown that defaults to whatever was used last.
+
+One commit on `main` predates that setting and is squashed (`52484c2`, PR #16). It was left alone deliberately. Force-pushing `main` to manufacture a merge commit that never happened would misrepresent the history, which costs more than the inconsistency does on a project whose point is a truthful record. Note that `git log --merges` does not list it; anything that needs a complete list of merged work should read the GitHub PR API rather than walk merge commits, which is the better source regardless since it carries the writeups.
+
 ## Planning and issue tracking
 
 **A milestone is a sprint.** PRD §11 milestones map one-to-one onto GitHub Milestones — no separate cadence, no second planning structure to keep in sync. The PRD's exit criteria are the sprint goal; do not restate them elsewhere.
