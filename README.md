@@ -4,7 +4,7 @@ A generation-focused documentation system. It reads an open-source project's sou
 
 The first target is [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) by Mintplex Labs.
 
-**Site:** [sourceweave.netlify.app](https://sourceweave.netlify.app) — published with `noIndex` until output quality meets the thresholds in [PRD §10](PRD.md#10-success-metrics). There is no generated documentation on it yet; the first section arrives at M2.
+**Site:** [sourceweave.scottcertain.com](https://sourceweave.scottcertain.com) — published with `noIndex` until output quality meets the thresholds in [PRD §10](PRD.md#10-success-metrics). There is no generated documentation on it yet; the first section arrives at M2.
 
 See [PRD.md](PRD.md) for the full product requirements, and [docs/decisions/](docs/decisions/) for the architecture decision record.
 

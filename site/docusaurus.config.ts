@@ -17,10 +17,9 @@ const config: Config = {
     v4: true,
   },
 
-  // The live deploy target. Changes to https://sourceweave.scottcertain.com
-  // once that domain is configured (issue #19) -- this value feeds canonical
-  // links and the sitemap, so it has to name a host that actually answers.
-  url: 'https://sourceweave.netlify.app',
+  // Feeds canonical links and the sitemap, so it names the primary host.
+  // sourceweave.netlify.app still resolves and redirects here.
+  url: 'https://sourceweave.scottcertain.com',
   baseUrl: '/',
 
   organizationName: 'ScottCertain',
