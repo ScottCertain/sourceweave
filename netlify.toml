@@ -15,6 +15,27 @@
   command = "npm run build"
   publish = "build"
 
+  # Widen the change detection past `base`.
+  #
+  # By default Netlify skips a build entirely when nothing under `base` has
+  # changed -- "No changes detected in base directory. Returning early from
+  # build." That is correct for most sites and wrong for this one: the corpus
+  # lives in targets/<name>/docs/, outside base, and site/docs/ is derived and
+  # gitignored (ADR 0008). So publishing a reviewed page changes nothing
+  # Netlify watches. It would merge and never appear, with no error anywhere.
+  #
+  # Exit 0 skips the build; any non-zero exit builds. Every failure path here
+  # is non-zero: an empty CACHED_COMMIT_REF on a first build exits 128, and a
+  # malformed range exits non-zero too. The worst case is a needless
+  # twenty-second build. There is no path that silently skips.
+  #
+  # CACHED_COMMIT_REF is the last successfully built commit, not HEAD^, so a
+  # push containing several commits is compared as a whole.
+  #
+  # netlify.toml is in the watched set because changing the headers or
+  # redirects here must reach the edge.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- site/ targets/ netlify.toml"
+
 [build.environment]
   # Matches the Node version CI builds with, so a build that passes in CI is
   # not the first to fail here. site/package.json requires >=20.0.
