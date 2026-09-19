@@ -96,6 +96,21 @@ Decisions go in `docs/decisions/` as numbered records, not in commit messages or
 
 When closing a PRD §13 open question, say so in the record's `Closes:` line.
 
+**Never put a closing keyword near an issue reference, even negated.** GitHub matches `fix`, `fixes`, `closes`, `resolves` and their variants followed by `#N`, and does not parse negation — "what this does not fix: #32" closed #32. Write "issue 32" without the `#`, or phrase so no keyword precedes the reference.
+
+## Working references
+
+`temp/observations/architecture/` holds quick-reference documents describing what the system is and does. They are gitignored on purpose — personal reference material, not repository documentation — and they restate the PRD and ADRs deliberately, which means they drift.
+
+Refresh them at two points:
+
+1. **When an ADR merges.** Add its entry to `04-decisions-index.md`, and check whether `03-constraints-that-shape-everything.md` gained or lost a constraint.
+2. **When a milestone closes.** Re-run all of them against the repository, and say in the milestone tracking issue's completion comment that they were refreshed.
+
+Each file carries a *reviewed as of* date. `06-current-state.md` goes stale fastest and should be treated as wrong until re-verified.
+
+The second trigger carries more weight than it looks. These files are not committed, so no CI check and no code review can catch drift in them — the completion comment is the only trace that a refresh happened. This is the same exposure that ADR 0008 records for decision records themselves, and the same reason four separate instructions went stale in a single day when the upstream submodule landed.
+
 ## Tone for generated documentation
 
 Until `style-guide/STYLE.md` exists, these hold:
