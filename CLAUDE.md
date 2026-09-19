@@ -2,6 +2,16 @@
 
 SourceWeave generates documentation for an open-source target from its pinned source, evaluates the output, and publishes it. See [PRD.md](PRD.md) for requirements and [docs/decisions/](docs/decisions/) for decisions already made and closed.
 
+## Start here
+
+**Much more is designed than is built.** Reading the decision records will suggest components that do not exist yet. Check state before building on anything:
+
+- **[PRD §11](PRD.md#11-milestones)** — milestones and exit criteria
+- **[docs/decisions/README.md](docs/decisions/)** — the ADRs, including which supersede which
+- **`temp/observations/architecture/06-current-state.md`** — what is actually built versus designed. Gitignored, so it is on disk but not in the repository.
+
+These are pointers rather than a summary on purpose. A snapshot of project state written into this file would go stale the way four other instructions did the day the upstream submodule landed — a documented command that would have written to a read-only submodule, a CI job requesting submodules the architecture forbids it to read, clone instructions contradicting ADR 0003, and an architecture diagram describing a single-output pipeline. Each was correct when written. Prose has no CI.
+
 ## Hard rules
 
 **Never add `--bare` to a `claude` invocation in this repository.** Bare mode does not read subscription credentials and falls back to `ANTHROPIC_API_KEY`. It does not error when you add it — the run simply executes against a different credential path, silently. This project is designed around a fixed subscription capacity ceiling, deliberately; see [ADR 0002](docs/decisions/0002-model-access-via-claude-subscription.md).
