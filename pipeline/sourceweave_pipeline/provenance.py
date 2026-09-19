@@ -50,17 +50,36 @@ ones we cannot.
 
 @dataclass(frozen=True)
 class SourceRef:
-    """One source file a page was grounded in."""
+    """One unit of source a page was grounded in.
+
+    Per ADR 0009, a page records *exactly* the context that went into its
+    prompt -- so these entries are emitted by context assembly rather than
+    declared separately. An incomplete list is a generation bug, not a
+    bookkeeping one: it means the prompt was missing something the page
+    needed.
+    """
 
     path: str
-    """Path relative to the target's upstream submodule root."""
+    """Address of the unit read, relative to the target's upstream submodule.
+
+    A whole file where the source is unstructured::
+
+        server/endpoints/api/workspace/index.js
+
+    A JSON Pointer into it where the source is structured, so that an
+    unrelated change elsewhere in the same file does not invalidate this
+    page::
+
+        server/swagger/openapi.json#/paths/~1v1~1workspace~1new
+        server/swagger/openapi.json#/components/schemas/Workspace
+    """
 
     sha256: str
-    """Digest of the file's contents when the page was generated.
+    """Digest of the unit's canonicalised contents when the page was generated.
 
-    A page is stale when this no longer matches, which is what drives
-    incremental regeneration (ADR 0002 -- rate limits make full-corpus
-    regeneration impractical).
+    Covers the extracted unit, not the containing file. A page is stale when
+    this no longer matches, which is what drives incremental regeneration
+    (ADR 0002 -- rate limits make full-corpus regeneration impractical).
     """
 
 

@@ -14,6 +14,7 @@ Records are immutable once merged. To change a decision, add a new record that s
 | [0006](0006-one-corpus-many-channels.md) | One corpus, many channels | Accepted |
 | [0007](0007-citation-tracking.md) | Citation rate is measured on a schedule and published | Accepted |
 | [0008](0008-docusaurus-reads-a-synced-copy.md) | Docusaurus reads a synced copy, not the corpus directly | Accepted |
+| [0009](0009-pages-record-the-context-they-were-generated-from.md) | A page records exactly the context it was generated from | Accepted |
 
 ## Relationship to the PRD
 
