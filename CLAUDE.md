@@ -96,7 +96,11 @@ Decisions go in `docs/decisions/` as numbered records, not in commit messages or
 
 When closing a PRD §13 open question, say so in the record's `Closes:` line.
 
-**Never put a closing keyword near an issue reference, even negated.** GitHub matches `fix`, `fixes`, `closes`, `resolves` and their variants followed by `#N`, and does not parse negation — "what this does not fix: #32" closed #32. Write "issue 32" without the `#`, or phrase so no keyword precedes the reference.
+**Never put a closing keyword near an issue reference, even negated.** GitHub matches `fix`, `fixes`, `closes`, `resolves` and their variants followed by a `#` reference, and does not parse negation. A phrase of the form *"what this does not fix: #NNN"* closes issue NNN.
+
+Write "issue 32" without the `#`, or phrase so no keyword precedes the reference.
+
+**Write examples of this rule with a placeholder, never a real issue number.** The rule was first added in a commit whose message quoted the original failure verbatim — and the quotation closed the same issue a second time, eighteen hours after the first. A documented example must not be executable. This is also why the rule is stated here rather than trusted to care: it recurred while someone was actively writing it down.
 
 ## Working references
 
