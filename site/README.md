@@ -92,4 +92,6 @@ Secrets live in Netlify environment variables, never in the repo (NFR-1).
 
 From M2 the build must run the `channels/site/` sync before `docusaurus build`, which puts a Python step in a Node build ([ADR 0008](../docs/decisions/0008-docusaurus-reads-a-synced-copy.md)). If that proves fragile, committing the synced copy is the documented fallback — a fallback, not the default.
 
-Separately, Netlify skips a build entirely when nothing under `site/` has changed. A corpus-only update therefore publishes nothing, silently. Tracked in issue #32; it needs fixing before the first generated page ships.
+Netlify skips a build entirely when nothing under `base` has changed. Because the corpus lives outside `base` — in `targets/<name>/docs/`, with `site/docs/` derived and gitignored — a corpus-only update would have published nothing, silently.
+
+`netlify.toml` sets an `ignore` command that widens the check to `site/`, `targets/` and `netlify.toml` itself. Exit 0 skips, non-zero builds, and every failure path in that command is non-zero — so the worst case is a needless twenty-second build, never a silent skip.
