@@ -186,9 +186,6 @@ htmlcov/
 # machine state, not history.
 .checkpoints/
 
-# Drafts awaiting human review. Only reviewed output is committed.
-**/docs/**/*.draft.md
-
 # Local Vale downloads
 .vale/styles/*
 !.vale/styles/SourceWeave/

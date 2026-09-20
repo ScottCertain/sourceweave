@@ -13,9 +13,10 @@ Records are immutable once merged. To change a decision, add a new record that s
 | [0005](0005-ai-consumption-audience.md) | AI-mediated consumption serves two audiences, not three | Accepted |
 | [0006](0006-one-corpus-many-channels.md) | One corpus, many channels | Accepted |
 | [0007](0007-citation-tracking.md) | Citation rate is measured on a schedule and published | Accepted |
-| [0008](0008-docusaurus-reads-a-synced-copy.md) | Docusaurus reads a synced copy, not the corpus directly | Accepted |
+| [0008](0008-docusaurus-reads-a-synced-copy.md) | Docusaurus reads a synced copy, not the corpus directly | Accepted — one protection superseded by [0011](0011-unreviewed-drafts-are-committed.md) |
 | [0009](0009-pages-record-the-context-they-were-generated-from.md) | A page records exactly the context it was generated from | Accepted — worked example corrected by [0010](0010-api-reference-pages-are-one-per-operation.md) |
 | [0010](0010-api-reference-pages-are-one-per-operation.md) | API reference pages are one per operation, grouped by tag | Accepted |
+| [0011](0011-unreviewed-drafts-are-committed.md) | Unreviewed drafts are committed; the loader gate is what publishes | Accepted |
 
 ## Relationship to the PRD
 
