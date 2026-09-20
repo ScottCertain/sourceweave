@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-09-19
-**Refines:** [0009](0009-pages-record-the-context-they-were-generated-from.md), which named this as the choice to make alongside it; bounds the M2 scope in PRD §11
+**Refines:** [0009](0009-pages-record-the-context-they-were-generated-from.md), which named this as the choice to make alongside it, and corrects its worked example; bounds the M2 scope in PRD §11
 **Settles:** issue 47
 
 ## Context

@@ -1,8 +1,10 @@
 # 0009. A page records exactly the context it was generated from
 
-**Status:** Accepted
+**Status:** Accepted — worked example corrected by [0010](0010-api-reference-pages-are-one-per-operation.md)
 **Date:** 2026-09-19
 **Refines:** PRD FR-7; sets the basis for the incremental regeneration required by [ADR 0002](0002-model-access-via-claude-subscription.md)
+
+> **Worked example corrected.** The diagrams and addressing examples below use a `Workspace` schema at `#/components/schemas/Workspace`. No such schema exists in the pinned spec. At `v1.16.1` there is exactly one component schema, `InvalidAPIKey` (the 403 response body); all 122 `$ref` occurrences point at it, and every request and response body is written inline in its operation. [ADR 0010](0010-api-reference-pages-are-one-per-operation.md) records the measured shape. The decision here is unaffected — the narrow unit is the operation's own subtree, and the shared unit reached by `$ref` resolution is `InvalidAPIKey` rather than `Workspace` — but the example was assumed, not measured, and this note marks it so a reader does not carry the assumption forward.
 
 ## Context
 
