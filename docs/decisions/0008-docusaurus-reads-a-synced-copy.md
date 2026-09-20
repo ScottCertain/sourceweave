@@ -1,9 +1,11 @@
 # 0008. Docusaurus reads a synced copy, not the corpus directly
 
-**Status:** Accepted
+**Status:** Accepted — one protection superseded by [0011](0011-unreviewed-drafts-are-committed.md)
 **Date:** 2026-09-18
 **Supersedes:** one consequence of [0001](0001-pipeline-language.md); see below
 **Closes:** issue #12
+
+> **Superseded in part.** The protection table below lists the `*.draft.md` gitignore rule as a guard against committing a draft by accident. [ADR 0011](0011-unreviewed-drafts-are-committed.md) retires that rule: unreviewed pages are committed deliberately so review edits stay in history, and the loader gate — the second row — carries the whole rule. The decision here stands.
 
 ## Context
 
